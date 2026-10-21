@@ -19,6 +19,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate HTML, inline JavaScript and policy links
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          html = Path('index.html').read_text(encoding='utf-8')
+          assert '<title>GospelLift' in html
+          assert 'Brain Activator' in html
+          assert Path('privacy.html').exists() and Path('terms.html').exists()
+          scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+          assert scripts, 'No inline application script found'
+          Path('/tmp/gospellift-inline.js').write_text('\n'.join(scripts), encoding='utf-8')
+          for link in ['privacy.html', 'terms.html']:
+              assert f'href="{link}"' in html, f'Missing policy link: {link}'
+          print('Static source checks passed')
+          PY
+          node --check /tmp/gospellift-inline.js
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload static site

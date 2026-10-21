@@ -1,0 +1,32 @@
+name: Mobile browser smoke test
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: npm install --no-save playwright
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Serve static preview
+        run: python3 -m http.server 4173 --directory . > /tmp/gospellift-http.log 2>&1 &
+      - name: Run mobile browser smoke test
+        run: node tests/mobile-smoke.mjs
+      - name: Upload mobile screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gospellift-mobile-smoke-screenshot
+          path: gospellift-mobile-smoke.png
+          if-no-files-found: ignore
